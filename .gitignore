@@ -1,0 +1,20 @@
+# Google Drive API credentials and tokens
+credentials.json
+token.pickle
+
+# Downloaded Drive files
+drive_files/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
