@@ -1,6 +1,7 @@
 # Google Drive API credentials and tokens
 credentials.json
 token.pickle
+.drive-data/
 
 # Downloaded Drive files
 drive_files/

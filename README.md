@@ -77,6 +77,31 @@ You'll need to create your own Google Cloud project and OAuth credentials. This 
 
 ## Usage
 
+### Quick Start with Claude Code (Recommended)
+
+This tool includes slash commands for seamless integration with Claude Code. This lets you quickly set up Google Drive downloads in any project directory.
+
+**Available slash commands:**
+- `/drive-setup` - Set up Drive downloader in current directory with account selection
+- `/drive-fetch` - Interactively browse and download Drive files
+- `/drive-download <url>` - Download specific files by URL or ID
+
+**First-time setup:**
+1. In Claude Code, navigate to any project directory
+2. Run `/drive-setup` and follow the prompts to:
+   - Add your Google account credentials
+   - Link credentials to the project
+   - Authenticate with OAuth
+3. Run `/drive-fetch` to browse and download files, or `/drive-download <url>` for specific files
+
+**Benefits:**
+- Reuse credentials across multiple projects
+- Quick setup in any directory
+- Seamless integration with Claude Code workflows
+- No need to manually copy scripts or credentials
+
+See [Slash Commands](#slash-commands) section below for detailed usage.
+
 ### Option 1: Interactive File Selection
 
 Run the main script to browse and select files from your Google Drive:
@@ -153,6 +178,141 @@ Files are named using their original Drive filename with the appropriate extensi
 - `credentials.json` - Your OAuth client credentials
 - `token.pickle` - Your access tokens
 - `drive_files/` - May contain sensitive downloaded content
+
+## Slash Commands
+
+The tool includes Claude Code slash commands for easy integration in any project directory. This feature allows you to manage multiple Google accounts and quickly set up Drive downloads wherever you need them.
+
+### Command Reference
+
+#### `/drive-setup`
+Set up Google Drive downloader in your current project directory.
+
+**What it does:**
+- Lists available accounts from `~/.drive-accounts/`
+- Lets you select an existing account or add a new one
+- Copies `drive_client.py` to your project
+- Creates `.drive-data/` with credentials and config
+- Creates `drive_files/` directory for downloads
+
+**Example usage:**
+```
+/drive-setup
+```
+
+You'll be guided through:
+1. Selecting or adding a Google account
+2. Providing your `credentials.json` file (if adding new account)
+3. Authenticating with OAuth (on first use)
+
+#### `/drive-fetch`
+Interactively browse and download files from Google Drive.
+
+**What it does:**
+- Lists all files in your Google Drive
+- Lets you select specific files or download all
+- Downloads to `drive_files/` directory
+
+**Example usage:**
+```
+/drive-fetch
+
+# Or with Claude Code:
+Fetch my Drive files and summarize them
+```
+
+Claude will run the interactive file browser, and you can select which files to download.
+
+#### `/drive-download`
+Download specific files by URL or file ID.
+
+**What it does:**
+- Extracts Drive URLs or file IDs from your message
+- Downloads specified files to `drive_files/`
+- Shows file metadata and progress
+
+**Example usage:**
+```
+/drive-download https://docs.google.com/document/d/FILE_ID/edit
+
+# Or with Claude Code:
+Download this file https://drive.google.com/file/d/FILE_ID/view and analyze it
+```
+
+**Supported URL formats:**
+- `https://drive.google.com/file/d/FILE_ID/view`
+- `https://docs.google.com/document/d/FILE_ID/edit`
+- `https://docs.google.com/spreadsheets/d/FILE_ID/edit`
+- Raw file IDs: `FILE_ID`
+
+### Multi-Account Support
+
+The slash commands support multiple Google accounts through centralized credential management:
+
+**Account storage:**
+- Credentials stored in `~/.drive-accounts/<account-name>/`
+- Reusable across all your projects
+- Easy switching between personal/work accounts
+
+**Adding accounts:**
+When running `/drive-setup`, you can add new accounts by:
+1. Providing an account name (e.g., "personal", "work", "client")
+2. Providing path to your `credentials.json` file
+3. Authenticating with OAuth
+
+**Using accounts:**
+Each project directory maintains its own `.drive-data/` that links to a specific account from `~/.drive-accounts/`.
+
+### Project Structure
+
+After running `/drive-setup`, your project will have:
+
+```
+your-project/
+├── drive_client.py           # Drive API client (copied from tool repo)
+├── .drive-data/              # Hidden credentials directory
+│   ├── credentials.json      # OAuth credentials (from selected account)
+│   ├── token.pickle          # OAuth token (created on first auth)
+│   └── config.json           # Account configuration
+└── drive_files/              # Downloaded files (visible)
+    ├── Document1.md
+    ├── Spreadsheet.csv
+    └── ...
+```
+
+**Note:** `.drive-data/` is hidden but should be added to `.gitignore` to avoid committing credentials.
+
+### Quick Workflow Examples
+
+**Example 1: Setting up in a new project**
+```bash
+cd ~/my-new-project
+# In Claude Code:
+/drive-setup
+# Select "personal" account
+/drive-fetch
+# Select files to download
+```
+
+**Example 2: Downloading specific files**
+```bash
+cd ~/another-project
+# In Claude Code:
+/drive-setup
+# Select "work" account
+Download these files [URL1] [URL2] and create a summary report
+```
+
+**Example 3: Working with multiple accounts**
+```bash
+# Project A uses personal account
+cd ~/personal-project
+/drive-setup  # Select "personal"
+
+# Project B uses work account
+cd ~/work-project
+/drive-setup  # Select "work"
+```
 
 ## Troubleshooting
 
