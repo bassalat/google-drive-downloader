@@ -6,15 +6,17 @@ This script authenticates with Google Drive API and downloads/exports files
 to a local directory for use with Claude Code.
 
 Supports:
-- Google Docs (exported as Markdown)
-- Google Sheets (exported as CSV)
-- Google Slides (exported as plain text)
+- Google Docs (exported as Markdown, DOCX, or PDF)
+- Google Sheets (exported as CSV, XLSX, or PDF)
+- Google Slides (exported as plain text, PPTX, or PDF)
 - Regular files (PDF, images, etc.)
 """
 
 import os
 import io
+import sys
 import pickle
+import argparse
 from pathlib import Path
 from typing import List, Dict, Optional
 
@@ -31,12 +33,45 @@ SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 # Output directory for downloaded files
 OUTPUT_DIR = Path('./drive_files')
 
-# MIME type mappings for Google Workspace files
-EXPORT_FORMATS = {
-    'application/vnd.google-apps.document': ('text/markdown', '.md'),
-    'application/vnd.google-apps.spreadsheet': ('text/csv', '.csv'),
-    'application/vnd.google-apps.presentation': ('text/plain', '.txt'),
+# Export format presets for different use cases
+EXPORT_PRESETS = {
+    'text-only': {
+        'name': 'Text Only (optimized for AI/text processing)',
+        'formats': {
+            'application/vnd.google-apps.document': ('text/markdown', '.md'),
+            'application/vnd.google-apps.spreadsheet': ('text/csv', '.csv'),
+            'application/vnd.google-apps.presentation': ('text/plain', '.txt'),
+        }
+    },
+    'full-fidelity': {
+        'name': 'Full Fidelity (preserves images, formatting, multimedia)',
+        'formats': {
+            'application/vnd.google-apps.document': ('application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx'),
+            'application/vnd.google-apps.spreadsheet': ('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx'),
+            'application/vnd.google-apps.presentation': ('application/vnd.openxmlformats-officedocument.presentationml.presentation', '.pptx'),
+        }
+    },
+    'pdf': {
+        'name': 'PDF (universal format, preserves layout)',
+        'formats': {
+            'application/vnd.google-apps.document': ('application/pdf', '.pdf'),
+            'application/vnd.google-apps.spreadsheet': ('application/pdf', '.pdf'),
+            'application/vnd.google-apps.presentation': ('application/pdf', '.pdf'),
+        }
+    }
 }
+
+# Default export format (backward compatible)
+EXPORT_FORMATS = EXPORT_PRESETS['text-only']['formats']
+
+
+def set_export_preset(preset: str) -> None:
+    """Set the export format preset globally."""
+    global EXPORT_FORMATS
+    if preset in EXPORT_PRESETS:
+        EXPORT_FORMATS = EXPORT_PRESETS[preset]['formats']
+    else:
+        raise ValueError(f"Unknown preset: {preset}")
 
 
 def authenticate() -> Credentials:
@@ -170,10 +205,52 @@ def download_file(service, file_info: Dict, output_dir: Path) -> bool:
     return False
 
 
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Download files from Google Drive with configurable export formats',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Export Format Presets:
+  text-only       Docs→Markdown, Sheets→CSV, Slides→Text (default)
+                  Best for: AI/LLM processing, text extraction
+                  Note: Loses images and multimedia
+
+  full-fidelity   Docs→DOCX, Sheets→XLSX, Slides→PPTX
+                  Best for: Archival, editing, preserving all content
+                  Preserves: Images, charts, formatting, multimedia
+
+  pdf             All files→PDF
+                  Best for: Viewing, sharing, printing
+                  Preserves: Layout and formatting (no animations)
+
+Examples:
+  python fetch_drive_files.py                    # Interactive, text-only (default)
+  python fetch_drive_files.py --format pdf       # Interactive, PDF export
+  python fetch_drive_files.py -f full-fidelity   # Interactive, full fidelity
+        """
+    )
+    parser.add_argument(
+        '-f', '--format',
+        choices=['text-only', 'full-fidelity', 'pdf'],
+        default='text-only',
+        help='Export format preset (default: text-only)'
+    )
+    return parser.parse_args()
+
+
 def main():
     """Main function to fetch Google Drive files."""
+    # Parse arguments
+    args = parse_arguments()
+
+    # Set export format
+    set_export_preset(args.format)
+
     print("=" * 60)
     print("Google Drive File Fetcher for Claude Code")
+    print("=" * 60)
+    print(f"📋 Export Format: {EXPORT_PRESETS[args.format]['name']}")
     print("=" * 60)
     print()
 

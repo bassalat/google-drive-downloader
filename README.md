@@ -7,10 +7,14 @@ A Python tool to download and export files from Google Drive, with support for G
 - **Interactive file selection** - Browse and select files from your Google Drive
 - **Batch downloads** - Download all files or select specific ones
 - **URL/ID-based downloads** - Download specific files using Drive URLs or file IDs
-- **Smart format conversion** - Automatically exports Google Workspace files to portable formats:
-  - Google Docs → Markdown (`.md`)
-  - Google Sheets → CSV (`.csv`)
-  - Google Slides → Plain text (`.txt`)
+- **Multiple export format options** - Choose the format that best fits your needs:
+  - **Text-only mode** (default) - Optimized for AI/LLM processing
+  - **Full-fidelity mode** - Preserves images, charts, formatting, and multimedia
+  - **PDF mode** - Universal format for viewing and sharing
+- **Smart format conversion** - Automatically exports Google Workspace files:
+  - Google Docs → Markdown (`.md`), DOCX (`.docx`), or PDF (`.pdf`)
+  - Google Sheets → CSV (`.csv`), XLSX (`.xlsx`), or PDF (`.pdf`)
+  - Google Slides → Plain text (`.txt`), PPTX (`.pptx`), or PDF (`.pdf`)
   - PDFs, images, and other files → Original format
 - **Metadata tracking** - Saves modification dates and file IDs
 - **Read-only access** - Uses read-only Google Drive scope for security
@@ -107,7 +111,14 @@ See [Slash Commands](#slash-commands) section below for detailed usage.
 Run the main script to browse and select files from your Google Drive:
 
 ```bash
+# Default: text-only format (Markdown, CSV, plain text)
 python fetch_drive_files.py
+
+# Full-fidelity format (DOCX, XLSX, PPTX - preserves images and multimedia)
+python fetch_drive_files.py --format full-fidelity
+
+# PDF format
+python fetch_drive_files.py --format pdf
 ```
 
 **First time:**
@@ -136,13 +147,14 @@ Enter file numbers to download (comma-separated), or 'all': 1,2,4
 Download specific files directly using their Google Drive URL or file ID:
 
 ```bash
+# Default: text-only format
 python download_by_url.py "https://docs.google.com/document/d/FILE_ID/edit"
-```
 
-Or use the file ID directly:
+# Full-fidelity format (preserves images)
+python download_by_url.py --format full-fidelity "FILE_ID"
 
-```bash
-python download_by_url.py "FILE_ID"
+# PDF format
+python download_by_url.py -f pdf "URL1" "URL2"
 ```
 
 **Multiple files:**
@@ -152,14 +164,49 @@ python download_by_url.py "URL1" "URL2" "FILE_ID3"
 
 ## File Type Support
 
-| Google Drive Type | Export Format | Extension |
-|-------------------|---------------|-----------|
-| Google Docs | Markdown | `.md` |
-| Google Sheets | CSV | `.csv` |
-| Google Slides | Plain Text | `.txt` |
-| PDF | Original | `.pdf` |
-| Images (JPG, PNG, etc.) | Original | `.jpg`, `.png`, etc. |
-| Other files | Original | Various |
+### Export Format Comparison
+
+| Google Drive Type | Text-Only (default) | Full-Fidelity | PDF |
+|-------------------|---------------------|---------------|-----|
+| **Google Docs** | Markdown (`.md`) | DOCX (`.docx`) | PDF (`.pdf`) |
+| **Google Sheets** | CSV (`.csv`) | XLSX (`.xlsx`) | PDF (`.pdf`) |
+| **Google Slides** | Plain Text (`.txt`) | PPTX (`.pptx`) | PDF (`.pdf`) |
+| **PDFs** | Original (`.pdf`) | Original (`.pdf`) | Original (`.pdf`) |
+| **Images** | Original | Original | Original |
+| **Other files** | Original | Original | Original |
+
+### What's Preserved in Each Format?
+
+| Feature | Text-Only | Full-Fidelity | PDF |
+|---------|-----------|---------------|-----|
+| **Text content** | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Images** | ❌ No | ✅ Yes | ✅ Yes |
+| **Charts & graphs** | ❌ No | ✅ Yes | ✅ Yes |
+| **Formatting** | ⚠️ Basic | ✅ Full | ✅ Full |
+| **Multiple sheets** (Excel) | ❌ First only | ✅ All | ✅ All |
+| **Editable** | ✅ Yes | ✅ Yes | ❌ No |
+| **AI/LLM friendly** | ✅ Excellent | ⚠️ Good | ⚠️ Good |
+| **File size** | 🟢 Small | 🟡 Medium | 🟡 Medium |
+
+### Format Selection Guide
+
+**Use `text-only` (default) when:**
+- Extracting text content for AI/LLM processing (like Claude)
+- You don't need images or complex formatting
+- You want smaller file sizes
+- You need easy-to-parse formats (Markdown, CSV)
+
+**Use `full-fidelity` when:**
+- You need to preserve images and multimedia
+- You plan to edit the files later
+- You need charts, graphs, and diagrams
+- You're creating backups or archives
+
+**Use `pdf` when:**
+- You need a universal viewing format
+- You want to preserve exact layout
+- You're sharing files for reading only
+- You need consistent rendering across platforms
 
 ## Output
 
@@ -355,17 +402,39 @@ files = list_files(service, folder_id='YOUR_FOLDER_ID')
 
 ### Change Export Formats
 
-Edit the `EXPORT_FORMATS` dictionary in `fetch_drive_files.py`:
+You can customize export formats by using command-line flags (recommended) or editing the code:
+
+**Command-line (recommended):**
+```bash
+# Use one of the built-in presets
+python fetch_drive_files.py --format full-fidelity
+python download_by_url.py --format pdf "FILE_ID"
+```
+
+**Code customization (advanced):**
+
+Edit the `EXPORT_PRESETS` dictionary in `fetch_drive_files.py` or `download_by_url.py`:
 
 ```python
-EXPORT_FORMATS = {
-    'application/vnd.google-apps.document': ('text/markdown', '.md'),
-    'application/vnd.google-apps.spreadsheet': ('text/csv', '.csv'),
-    'application/vnd.google-apps.presentation': ('text/plain', '.txt'),
+EXPORT_PRESETS = {
+    'text-only': {
+        'name': 'Text Only',
+        'formats': {
+            'application/vnd.google-apps.document': ('text/markdown', '.md'),
+            'application/vnd.google-apps.spreadsheet': ('text/csv', '.csv'),
+            'application/vnd.google-apps.presentation': ('text/plain', '.txt'),
+        }
+    },
+    # Add your custom preset here...
 }
 ```
 
 Available export formats: https://developers.google.com/drive/api/guides/ref-export-formats
+
+**Common MIME type options:**
+- Google Docs: `text/markdown`, `text/html`, `application/rtf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (DOCX), `application/pdf`
+- Google Sheets: `text/csv`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (XLSX), `application/pdf`
+- Google Slides: `text/plain`, `application/vnd.openxmlformats-officedocument.presentationml.presentation` (PPTX), `application/pdf`
 
 ### Change Output Directory
 
